@@ -1,0 +1,136 @@
+<!--
+ * @Author: your name
+ * @Date: 2022-03-29 21:13:28
+ * @LastEditTime: 2022-03-29 21:55:59
+ * @LastEditors: Please set LastEditors
+ * @Description: 打开koroFileHeader查看配置 进行设置: https://github.com/OBKoro1/koro1FileHeader/wiki/%E9%85%8D%E7%BD%AE
+ * @FilePath: \code\p1_draw_point.html
+-->
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>绘制点坐标 - 练习</title>
+    <script src="glMatrix-0.9.6.min.js"></script>
+    <script>
+      let webgl;
+      // 投影矩阵
+      let projMat4 = mat4.create();
+      // 顶点着色器shader - 承接坐标点(a_position);承接投影坐标点(proj)
+      // 定义shader入口函数 - 顶点着色器内置的变量信息
+      // 顶点*坐标 - 作变换
+      // main - shader入口函数 - 投影坐标系*坐标点
+      let vertexString = `
+        attribute vec4 a_position;
+        uniform     mat4    proj;
+        void main(void){
+            gl_Position =proj *  a_position;
+            gl_PointSize=60.0;
+        }
+        `;
+
+      // 片元着色器shader - gl_FragColor 内置变量 - 将颜色赋值给片元着色器
+      let fragmentString = `
+        void main(void){
+          gl_FragColor = vec4(0,0,1.0,1.0);
+        }
+        `;
+
+      // 入口函数
+      function init() {
+        // 构建webgl
+        initWebgl();
+        // 构建shader,shader初始化
+        initShader();
+        // 数据初始化
+        initBuffer();
+        // 绘制什么图形
+        draw();
+      }
+      // webgl初始化函数
+      function initWebgl() {
+        // 获取容器
+        let webglDiv = document.getElementById("webglCanvas");
+        // 获取上下文
+        webgl = webglDiv.getContext("webgl");
+        // 平面可视域范围 0,0原点
+        webgl.viewport(0, 0, webglDiv.clientWidth, webglDiv.clientHeight);
+        // 设置webgl投影坐标系 - 返回投影矩阵
+        mat4.ortho(
+          0,
+          webglDiv.clientWidth,
+          webglDiv.clientHeight,
+          0,
+          -1.0,
+          1.0,
+          projMat4
+        );
+      }
+      // shader初始化函数 - GPU计算的语言 - 编写shader
+      // 将点位信息赋值给shader
+      function initShader() {
+        // 创建顶点shader
+        let vsshader = webgl.createShader(webgl.VERTEX_SHADER);
+        // 创建片元shader
+        let fsshader = webgl.createShader(webgl.FRAGMENT_SHADER);
+        // 将文本和shader容器进行绑定 - 容器与之对应的文本
+        webgl.shaderSource(vsshader, vertexString);
+        webgl.shaderSource(fsshader, fragmentString);
+
+        // 将容器打包编译
+        webgl.compileShader(vsshader);
+        webgl.compileShader(fsshader);
+
+        // if (!webgl.getShaderParameter(vsshader, webgl.COMPILE_STATUS)) {
+        //     var err = webgl.getShaderInfoLog(vsshader);
+        //     alert(err);
+        //     return;
+        // }
+        // if (!webgl.getShaderParameter(fsshader, webgl.COMPILE_STATUS)) {
+        //     var err = webgl.getShaderInfoLog(fsshader);
+        //     alert(err);
+        //     return;
+        // }
+
+        // 创建webgl要执行的项目 - 将shader赋值给项目并应用起来
+        let newprogram = webgl.createProgram();
+        // // webgl与shader进行绑定
+        webgl.attachShader(newprogram, vsshader);
+        webgl.attachShader(newprogram, fsshader);
+        // webgl对象要和现在创建的项目连接
+        webgl.linkProgram(newprogram);
+        webgl.useProgram(newprogram);
+        // 构建的项目赋值到webgl对象里
+        webgl.program = newprogram;
+      }
+      // 数据缓冲区初始化函数 - 数据放shader里进行运算
+      function initBuffer() {
+        // 定义坐标
+        let pointPosition = new Float32Array([100.0, 100.0, 0.0, 1.0]);
+        // 定义获取shader的变量
+        let aPosition = webgl.getAttribLocation(webgl.program, "a_position");
+        // 将准备的数据赋值到shader里 fv数组
+        webgl.vertexAttrib4fv(aPosition, pointPosition);
+
+        // 从shader里获取之后的变量
+        let uniforproj = webgl.getUniformLocation(webgl.program, "proj");
+        // 将坐标系赋值给proj,是否转置
+        webgl.uniformMatrix4fv(uniforproj, false, projMat4);
+      }
+      // webgl的绘制函数
+      function draw() {
+        // 冲刷颜色 - 黑色
+        webgl.clearColor(0.0, 0.0, 0.0, 1.0);
+        // 监测颜色
+        webgl.clear(webgl.COLOR_BUFFER_BIT);
+        // 绘制点,index,几个点
+        webgl.drawArrays(webgl.POINTS, 0, 1);
+      }
+    </script>
+  </head>
+  <body onload="init()">
+    <canvas id="webglCanvas" width="500" height="300"></canvas>
+  </body>
+</html>

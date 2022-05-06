@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>draw dynamic point</title>
+    <script src="glMatrix-0.9.6.min.js"></script>
+    <script>
+      // 实现思路
+      // 绘制单个点 - 鼠标事件监听点击事件 - 将点推送到数组中 - 绘制数组中所有点
+      let vertexstring = `
+        attribute vec3 a_position;
+        uniform     mat4    proj;
+
+
+        void main(void){
+            gl_Position = vec4(a_position,1.0)  ;
+            gl_PointSize=60.0;
+
+        }
+        `;
+      let fragmentstring = `
+        precision mediump float;
+        void main(void){
+          gl_FragColor = vec4(0.0,0.0,1.0,1.0);
+        }
+        `;
+      var projMat4 = mat4.create();
+      var webgl;
+      function init() {
+        initWebgl();
+        initShader();
+        initBuffer();
+        draw();
+      }
+
+      function initWebgl() {
+        let webglDiv = document.getElementById("myCanvas");
+        webgl = webglDiv.getContext("webgl");
+        webgl.viewport(0, 0, webglDiv.clientWidth, webglDiv.clientHeight);
+        mat4.ortho(
+          0,
+          webglDiv.clientWidth,
+          webglDiv.clientHeight,
+          0,
+          -1.0,
+          1.0,
+          projMat4
+        );
+      }
+
+      function initShader() {
+        let vsshader = webgl.createShader(webgl.VERTEX_SHADER);
+        let fsshader = webgl.createShader(webgl.FRAGMENT_SHADER);
+
+        webgl.shaderSource(vsshader, vertexstring);
+        webgl.shaderSource(fsshader, fragmentstring);
+
+        webgl.compileShader(vsshader);
+        webgl.compileShader(fsshader);
+        if (!webgl.getShaderParameter(vsshader, webgl.COMPILE_STATUS)) {
+          var err = webgl.getShaderInfoLog(vsshader);
+          alert(err);
+          return;
+        }
+        if (!webgl.getShaderParameter(fsshader, webgl.COMPILE_STATUS)) {
+          var err = webgl.getShaderInfoLog(fsshader);
+          alert(err);
+          return;
+        }
+        let program = webgl.createProgram();
+        webgl.attachShader(program, vsshader);
+        webgl.attachShader(program, fsshader);
+
+        webgl.linkProgram(program);
+        webgl.useProgram(program);
+
+        webgl.program = program;
+      }
+
+      var points = [];
+      var colors = [];
+
+      function initBuffer() {
+        let aPosition = webgl.getAttribLocation(webgl.program, "a_position");
+
+        document.addEventListener("mousedown", (e) => {
+          let x = e.clientX;
+          let y = e.clientY;
+          let rect = e.target.getBoundingClientRect();
+          let top = rect.top;
+          let left = rect.left;
+          let pointx = (x - left - 512) / 512;
+          let pointy = -(y - top - 768 / 2) / (768 / 2);
+          points.push(pointx);
+          points.push(pointy);
+          points.push(0);
+          points.push(1.0);
+
+          let pointPosition = new Float32Array(points);
+          //   创建缓冲区
+          let pointBuffer = webgl.createBuffer();
+          //   绑定缓冲区 - 创建了一个数组buffer，要赋值的内容
+          webgl.bindBuffer(webgl.ARRAY_BUFFER, pointBuffer);
+          //   赋值 - 静态绘制
+          webgl.bufferData(
+            webgl.ARRAY_BUFFER,
+            pointPosition,
+            webgl.STATIC_DRAW
+          );
+          webgl.enableVertexAttribArray(aPosition);
+          //   四个数的矩阵
+          //   6个参数 - 要赋值的变量,个数,类型，是否转置,字节,从第几位偏移算起
+          webgl.vertexAttribPointer(
+            aPosition,
+            4,
+            webgl.FLOAT,
+            false,
+            4 * 4,
+            0 * 4
+          );
+
+          //   绘制
+          webgl.clearColor(0.0, 0.0, 0.0, 1.0);
+          webgl.clear(webgl.COLOR_BUFFER_BIT | webgl.DEPTH_BUFFER_BIT);
+          webgl.drawArrays(webgl.POINTS, 0, points.length);
+        });
+
+        let uniformProj = webgl.getUniformLocation(webgl.program, "proj");
+        webgl.uniformMatrix4fv(uniformProj, false, projMat4);
+      }
+    </script>
+  </head>
+  <body onload="init()">
+    <canvas id="myCanvas" width="1024" height="700"></canvas>
+  </body>
+</html>
