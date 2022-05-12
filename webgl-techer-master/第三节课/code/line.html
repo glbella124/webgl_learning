@@ -21,6 +21,7 @@
           gl_FragColor = vec4(0.0,0.0,1.0,1.0);
         }
         `;
+      // 投影矩阵
       var projMat4 = mat4.create();
       var webgl;
       function init() {
@@ -35,6 +36,7 @@
         let webglDiv = document.getElementById("myCanvas");
         webgl = webglDiv.getContext("webgl");
         webgl.viewport(0, 0, webglDiv.clientWidth, webglDiv.clientHeight);
+        // 设置webgl投影坐标系 - 返回投影矩阵
         mat4.ortho(
           0,
           webglDiv.clientWidth,
@@ -45,13 +47,18 @@
           projMat4
         );
       }
+      // shader初始化函数 - GPU计算的语言 - 编写shader
+      // 将点位信息赋值给shader
       function initShader() {
+        // 创建顶点着色器对象
         let vsshader = webgl.createShader(webgl.VERTEX_SHADER);
+        // 创建片元着色器对象
         let fsshader = webgl.createShader(webgl.FRAGMENT_SHADER);
-
+        // 向main函数里插入代码
         webgl.shaderSource(vsshader, vertexstring);
         webgl.shaderSource(fsshader, fragmentstring);
 
+        // 编译代码
         webgl.compileShader(vsshader);
         webgl.compileShader(fsshader);
         if (!webgl.getShaderParameter(vsshader, webgl.COMPILE_STATUS)) {
@@ -64,11 +71,16 @@
           alert(err);
           return;
         }
+
+        // 创建进程exe
         let program = webgl.createProgram();
+        //  向进程里传入编译好的程序
         webgl.attachShader(program, vsshader);
         webgl.attachShader(program, fsshader);
 
+        // 链接生成一个真正的可执行程序
         webgl.linkProgram(program);
+        // 使用这个可执行程序
         webgl.useProgram(program);
 
         webgl.program = program;
@@ -76,29 +88,48 @@
       var points = [];
       var colors = [];
       function initBuffer() {
+        let aPsotion = webgl.getAttribLocation(webgl.program, "a_position");
+
+        // 坐标
         let arr = [
-            100.0, 100.0, 0,
-            
-    ];
+          100.0, 100.0, 0, 1.0, 
+          200.0, 200.0, 0, 1.0, 
+          300.0, 200.0, 0, 1.0, 
+          400.0, 600.0, 0, 1.0,
+          // 300.0, 300.0, 0, 400, 600, 0,
+        ];
 
-        // let aPsotion = webgl.getAttribLocation(webgl.program, "a_position");
-        // let arr = [100.0,100.0,0,    200.0,200.0,0, 300.0,200.0,0 ,400,600,0];
-        // let vertexArr = new Float32Array(arr);
-        // let trangleBuffer =  webgl.createBuffer();
-        // webgl.bindBuffer(webgl.ARRAY_BUFFER,trangleBuffer);
-        // webgl.bufferData(webgl.ARRAY_BUFFER,vertexArr,webgl.STATIC_DRAW);
-        // webgl.enableVertexAttribArray(aPsotion);
-        // webgl.vertexAttribPointer(aPsotion,3, webgl.FLOAT, false, 0, 0);
+        let pointPosition = new Float32Array(arr);
+        // 赋值多点- 创建缓存区
+        let lineBuffer = webgl.createBuffer();
+        // 绑定 - 绑定某个缓冲区对象为当前缓冲区。webgl.ARRAY_BUFFER - 缓存对象
+        webgl.bindBuffer(webgl.ARRAY_BUFFER, lineBuffer);
+        // 给缓存区绑定值和类型，第三个参数标识静态类型
+        webgl.bufferData(webgl.ARRAY_BUFFER, pointPosition, webgl.STATIC_DRAW);
+        // 连接aPsotion变量与分配给它的缓存区对象 - 开启shader里的变量
+        webgl.enableVertexAttribArray(aPsotion);
+        // 将缓存区对象分配给aPsotionx变量
+        webgl.vertexAttribPointer(
+          aPsotion,
+          4,
+          webgl.FLOAT,
+          false,
+          4 * 4,
+          0 * 4
+        );
 
-        // let uniformProj = webgl.getUniformLocation(webgl.program, "proj");
-        // webgl.uniformMatrix4fv(uniformProj, false, projMat4);
+        let uniformProj = webgl.getUniformLocation(webgl.program, "proj");
+        webgl.uniformMatrix4fv(uniformProj, false, projMat4);
       }
       function draw() {
-        // webgl.clearColor(0.0, 0.0, 0.0, 1.0);
-        // webgl.clear(webgl.COLOR_BUFFER_BIT | webgl.DEPTH_BUFFER_BIT);
-        // webgl.drawArrays(webgl.LINES,0,4);
-        //webgl.drawArrays(webgl.LINE_STRIP,0,4)
-        //webgl.drawArrays(webgl.LINE_LOOP,0,4)
+        webgl.clearColor(0.0, 0.0, 0.0, 1.0);
+        webgl.clear(webgl.COLOR_BUFFER_BIT | webgl.DEPTH_BUFFER_BIT);
+        // 成对出现
+        // webgl.drawArrays(webgl.LINES, 0, 4);
+        // 全部相连
+        webgl.drawArrays(webgl.LINE_STRIP,0,4)
+        // 最后一个点到第一个点的线段
+        // webgl.drawArrays(webgl.LINE_LOOP,0,4)
       }
     </script>
   </head>

@@ -4,14 +4,14 @@
     <meta charset="UTF-8" />
     <meta http-equiv="X-UA-Compatible" content="IE=edge" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>muilti-polygon</title>
+    <title>triangle</title>
     <script src="glMatrix-0.9.6.min.js"></script>
     <script>
-      // 不做投影变换
       let vertexstring = `
         attribute vec3 a_position;
+        uniform  mat4  proj;
         void main(void){
-            gl_Position = vec4(a_position,1.0)  ;
+            gl_Position = proj*vec4(a_position,1.0)  ;
             gl_PointSize=60.0;
         }
         `;
@@ -25,8 +25,10 @@
       var projMat4 = mat4.create();
       var webgl;
       function init() {
+        // 不变
         initWebgl();
         initShader();
+        // 有变化
         initBuffer();
         draw();
       }
@@ -90,20 +92,10 @@
 
         // 坐标
         let arr = [
-            0, 0.5, 0, 1.0,
-            0.17, 0.17, 0, 1.0,
-            0.5, 0, 0, 1.0,
-            0.17, -0.17, 0, 1.0,
-
-
-            0.33, -0.67, 0, 1.0,
-            0, -0.33, 0, 1.0,
-
-            -0.33,-0.67,0,1.0,
-            -0.17,-0.17,0,1.0,
-            
-            -0.5,0,0,1.0,
-            -0.17,0.17,0,1.0,
+          100.0, 100.0, 0, 1.0, 
+          200.0, 200.0, 0, 1.0, 
+          300.0, 200.0, 0, 1.0,
+          400.0, 600.0, 0, 1.0,
         ];
 
         let pointPosition = new Float32Array(arr);
@@ -131,8 +123,10 @@
       function draw() {
         webgl.clearColor(0.0, 0.0, 0.0, 1.0);
         webgl.clear(webgl.COLOR_BUFFER_BIT | webgl.DEPTH_BUFFER_BIT);
-        // 参数对应mode, first, count
-        webgl.drawArrays(webgl.LINE_LOOP, 0, 10);
+        // webgl.drawArrays(webgl.TRIANGLES, 0, 3)
+        // webgl.drawArrays(webgl.TRIANGLE_STRIP, 0, 4)
+        // 1,2,3组成三角形，最后一条边连第四个点，覆盖原来的三角形
+        webgl.drawArrays(webgl.TRIANGLE_FAN,0,4)
       }
     </script>
   </head>

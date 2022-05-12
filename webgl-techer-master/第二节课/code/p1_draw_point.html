@@ -112,6 +112,7 @@
         // 定义获取shader的变量
         let aPosition = webgl.getAttribLocation(webgl.program, "a_position");
         // 将准备的数据赋值到shader里 fv数组
+        // 单个点绘制使用的方法
         webgl.vertexAttrib4fv(aPosition, pointPosition);
 
         // 从shader里获取之后的变量
